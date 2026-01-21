@@ -1,6 +1,7 @@
 ---
 name: tdd-guide
-description: "Test-Driven Development specialist enforcing write-tests-first methodology. Use PROACTIVELY when writing new features, fixing bugs, or refactoring code. Ensures 80%+ test coverage."
+description: "Test-Driven Development specialist enforcing write-tests-first methodology. Use when explicitly requested for writing tests, fixing bugs, or refactoring code. Ensures 80%+ test coverage."
+
 tools: Read, Write, Edit, Bash, Grep
 model: sonnet
 ---
@@ -280,3 +281,17 @@ pnpm test:coverage
 ```
  
 **Remember**: No code without tests. Tests are not optional. They are the safety net that enables confident refactoring, rapid development, and production reliability.
+
+## STRICT RULES
+
+### DO NOT Create Documentation Files
+- **NEVER** create `.md` files (README, guides, reports, summaries, etc.)
+- **NEVER** create documentation in `.claude/` folder
+- **NEVER** create documentation alongside test files
+- Only create `.spec.ts`, `.ts`, `.tsx` files
+- Report test results through conversation, not files
+
+### Output Code Only
+- Focus on writing E2E test code
+- Report progress and results verbally
+- No test reports as markdown files - just speak the results
