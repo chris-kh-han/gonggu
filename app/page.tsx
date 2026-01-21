@@ -1,42 +1,90 @@
-import { createClient } from "@/lib/supabase/server";
-import { GongguList } from "@/components/gonggu-list";
-import { AddGongguModal } from "@/components/gonggu/add-gonggu-modal";
+import { createClient } from '@/lib/supabase/server';
+import { GongguPage } from '@/components/gonggu-page';
+import { TrendingSidebar } from '@/components/trending-sidebar';
+import { AddGongguModal } from '@/components/gonggu/add-gonggu-modal';
+import type { Database } from '@/types/database.types';
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type TrendingPost =
+  Database['public']['Functions']['get_trending_posts']['Returns'][number];
 
 export default async function Home() {
   const supabase = await createClient();
 
-  // 최소 1.5초 로딩 표시
-  const [{ data: posts }] = await Promise.all([
+  // 최신순 + 급상승 데이터 동시 fetch
+  const [{ data: latestPosts }, { data: trendingPosts }] = await Promise.all([
     supabase
-      .from("gonggu_posts")
-      .select(`
+      .from('gonggu_posts')
+      .select(
+        `
         *,
         sellers (
           instagram_username,
           category
         )
-      `)
-      .eq("status", "open")
-      .order("created_at", { ascending: false }),
-    sleep(1500),
+      `,
+      )
+      .eq('status', 'open')
+      .order('created_at', { ascending: false }),
+    (supabase.rpc as Function)('get_trending_posts', {
+      limit_count: 20,
+    }) as Promise<{ data: TrendingPost[] | null }>,
   ]);
 
-  return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-md px-4 py-6">
-        {/* 헤더 */}
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">공구 파인더</h1>
-          <p className="text-sm text-muted-foreground">
-            인스타 공구 모아보기
-          </p>
-        </header>
+  // 급상승 데이터에 seller 정보 추가
+  const trendingPostIds = trendingPosts?.map((p: TrendingPost) => p.id) ?? [];
+  const { data: trendingSellers } =
+    trendingPostIds.length > 0
+      ? await supabase
+          .from('gonggu_posts')
+          .select(
+            `
+          id,
+          sellers (
+            instagram_username,
+            category
+          )
+        `,
+          )
+          .in('id', trendingPostIds)
+      : { data: [] };
 
-        {/* 공구 리스트 */}
-        <GongguList posts={posts ?? []} />
-      </main>
+  // seller 정보 매핑
+  type SellerInfo = { instagram_username: string; category: string | null };
+  const sellerMap = new Map<string, SellerInfo>(
+    trendingSellers?.map((p: { id: string; sellers: SellerInfo }) => [
+      p.id,
+      p.sellers,
+    ]) ?? [],
+  );
+  const trendingWithSellers =
+    trendingPosts?.map((post: TrendingPost) => ({
+      ...post,
+      sellers: sellerMap.get(post.id) ?? {
+        instagram_username: '',
+        category: null,
+      },
+    })) ?? [];
+
+  return (
+    <div className='min-h-[calc(100vh+1px)] bg-background'>
+      <div className='mx-auto max-w-6xl px-4 py-6'>
+        <div className='flex justify-between gap-8'>
+          {/* 메인 컨텐츠 */}
+          <main className='flex-1'>
+            <GongguPage
+              latestPosts={latestPosts ?? []}
+              trendingPosts={trendingWithSellers}
+            />
+          </main>
+
+          {/* 사이드바 - lg 이상에서만 표시 */}
+          <aside className='hidden lg:block w-80 shrink-0 mt-16'>
+            <div className='sticky top-0'>
+              <TrendingSidebar trendingPosts={trendingWithSellers} />
+            </div>
+          </aside>
+        </div>
+      </div>
 
       {/* 공구 추가 FAB + 모달 */}
       <AddGongguModal />

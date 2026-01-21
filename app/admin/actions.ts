@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { NewSeller, NewGongguPost } from "@/types/database.types";
 
 export type FormState = {
   success: boolean;
@@ -32,20 +33,21 @@ export async function addGonggu(
     .from("sellers")
     .select("id")
     .eq("instagram_username", instagram_username)
-    .single();
+    .single() as { data: { id: string } | null };
 
   if (existingSeller) {
     sellerId = existingSeller.id;
   } else {
+    const newSellerData: NewSeller = {
+      instagram_username,
+      category: category || null,
+      profile_url: `https://instagram.com/${instagram_username}`,
+    };
     const { data: newSeller, error: sellerError } = await supabase
       .from("sellers")
-      .insert({
-        instagram_username,
-        category: category || null,
-        profile_url: `https://instagram.com/${instagram_username}`,
-      })
+      .insert(newSellerData as never)
       .select("id")
-      .single();
+      .single() as { data: { id: string } | null; error: Error | null };
 
     if (sellerError || !newSeller) {
       return { success: false, message: "판매자 생성 실패: " + sellerError?.message };
@@ -54,14 +56,15 @@ export async function addGonggu(
   }
 
   // 2. 공구 게시물 생성
-  const { error: postError } = await supabase.from("gonggu_posts").insert({
+  const newPostData: NewGongguPost = {
     seller_id: sellerId,
     instagram_url,
     title,
     price: price ? parseInt(price, 10) : null,
     deadline: deadline || null,
     status: "open",
-  });
+  };
+  const { error: postError } = await supabase.from("gonggu_posts").insert(newPostData as never);
 
   if (postError) {
     return { success: false, message: "공구 등록 실패: " + postError.message };

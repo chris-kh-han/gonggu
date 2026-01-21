@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { CATEGORY_GROUPS } from "@/lib/categories";
+import { CATEGORY_GROUPS, CATEGORY_COLORS, type CategoryColorKey } from "@/lib/categories";
+import { cn } from "@/lib/utils";
 
 export const CATEGORIES = [
   { value: "all", label: "전체" },
@@ -17,17 +17,25 @@ interface CategoryFilterProps {
 export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-2">
-      {CATEGORIES.map((category) => (
-        <Button
-          key={category.value}
-          variant={selected === category.value ? "default" : "secondary"}
-          size="sm"
-          onClick={() => onSelect(category.value)}
-          className="rounded-lg shrink-0"
-        >
-          {category.label}
-        </Button>
-      ))}
+      {CATEGORIES.map((category) => {
+        const colors = CATEGORY_COLORS[category.value as CategoryColorKey];
+        const isSelected = selected === category.value;
+
+        return (
+          <button
+            key={category.value}
+            onClick={() => onSelect(category.value)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors",
+              isSelected
+                ? `${colors.bg} text-white`
+                : `${colors.bgLight} ${colors.text} ${colors.hover}`
+            )}
+          >
+            {category.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
