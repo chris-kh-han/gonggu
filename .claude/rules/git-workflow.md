@@ -26,3 +26,8 @@ When creating PRs:
 3. Draft comprehensive PR summary
 4. Include test plan with TODOs
 5. Push with `-u` flag if new branch
+
+## PR Attribution
+
+- Do NOT include "Generated with Claude Code" in PR descriptions
+- Do NOT add any AI attribution or footer text
