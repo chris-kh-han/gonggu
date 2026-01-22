@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getUserProfile, getUserStats, getUserBadges } from '@/lib/profile'
+import { profileRepository } from '@/lib/repositories'
 import { Card } from '@/components/ui/card'
 import { BadgeList } from '@/components/badges/badge-list'
 import { BADGE_DEFINITIONS } from '@/lib/badges'
@@ -18,11 +18,11 @@ export default async function ProfilePage() {
     redirect('/login')
   }
 
-  // 데이터 조회
+  // Repository를 통한 데이터 조회
   const [profile, stats, badgeIds] = await Promise.all([
-    getUserProfile(supabase, user.id),
-    getUserStats(supabase, user.id),
-    getUserBadges(supabase, user.id),
+    profileRepository.findById(user.id),
+    profileRepository.getStats(user.id),
+    profileRepository.getBadges(user.id),
   ])
 
   // 전체 뱃지 목록
