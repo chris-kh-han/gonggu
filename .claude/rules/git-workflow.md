@@ -31,3 +31,21 @@ When creating PRs:
 
 - Do NOT include "Generated with Claude Code" in PR descriptions
 - Do NOT add any AI attribution or footer text
+
+## Pull Request Guidelines
+
+- Split unrelated changes into separate PRs
+- One feature = one branch = one PR
+- Never mix auth, UI, refactor changes in single PR
+
+## Branch Naming
+
+- feat/<name>      # New feature
+- fix/<name>       # Bug fix
+- refactor/<name>  # Code refactoring
+- docs/<name>      # Documentation
+- test/<name>      # Tests
+- chore/<name>     # Maintenance
+- perf/<name>      # Performance
+- ci/<name>        # CI/CD changes
+- misc/<name>      # Anything else

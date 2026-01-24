@@ -1,0 +1,108 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add:*)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm dlx:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "Bash(pnpm build:*)",
+      "Skill(mgrep)",
+      "Bash(mgrep:*)",
+      "WebSearch",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm test:coverage:*)",
+      "Bash(pnpm test:e2e:*)",
+      "Bash(pnpm exec playwright install:*)",
+      "Bash(lsof:*)",
+      "Bash(CI=true pnpm test:e2e:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm tsc:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(curl:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(brew install:*)",
+      "Bash(gh auth login:*)",
+      "Bash(git checkout:*)",
+      "Bash(pnpm prettier:*)",
+      "Bash(claude doctor:*)",
+      "Bash(pnpm format:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./config/credentials.json)",
+      "Read(./build)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [],
+  "statusLine": {
+    "type": "command",
+    "command": "echo \"\\033[35m$(whoami):\\033[36m$(basename $PWD) \\033[32mctx:65% \\033[37mOpus 4.5 \\033[33m$(date +%H:%M)\\033[0m\""
+  },
+  "enabledPlugins": {},
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm run dev|pnpm( run)? dev|yarn dev|bun run dev)\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Hook] BLOCKED: Dev server must run in tmux for log access');console.error('[Hook] Use: tmux new-session -d -s dev \\\"npm run dev\\\"');console.error('[Hook] Then: tmux attach -t dev');process.exit(1)\""
+          }
+        ],
+        "description": "Block dev servers outside tmux - ensures you can access logs"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm (install|test)|pnpm (install|test)|yarn (install|test)?|bun (install|test)|cargo build|make|docker|pytest|vitest|playwright)\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"if(!process.env.TMUX){console.error('[Hook] Consider running in tmux for session persistence');console.error('[Hook] tmux new -s dev  |  tmux attach -t dev')}\""
+          }
+        ],
+        "description": "Reminder to use tmux for long-running commands"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"git push\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Hook] Review changes before push...');console.error('[Hook] Continuing with push (remove this hook to add interactive review)')\""
+          }
+        ],
+        "description": "Reminder before git push to review changes"
+      },
+      {
+        "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.(md|txt)$\" && !(tool_input.file_path matches \"README\\\\.md|CLAUDE\\\\.md|AGENTS\\\\.md|CONTRIBUTING\\\\.md\")",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path||'';if(/\\.(md|txt)$/.test(p)&&!/(README|CLAUDE|AGENTS|CONTRIBUTING)\\.md$/.test(p)){console.error('[Hook] BLOCKED: Unnecessary documentation file creation');console.error('[Hook] File: '+p);console.error('[Hook] Use README.md for documentation instead');process.exit(1)}console.log(d)})\""
+          }
+        ],
+        "description": "Block creation of random .md files - keeps docs consolidated"
+      },
+      {
+        "matcher": "tool == \"Edit\" || tool == \"Write\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/suggest-compact.js\""
+          }
+        ],
+        "description": "Suggest manual compaction at logical intervals"
+      }
+    ]
+  }
+}
