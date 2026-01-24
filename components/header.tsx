@@ -1,7 +1,7 @@
 'use client'
 
 import { useUser } from '@/hooks/use-user'
-import { LoginButton } from '@/components/auth/login-button'
+import { LoginModal } from '@/components/auth/login-modal'
 import { UserMenu } from '@/components/auth/user-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -20,7 +20,7 @@ export function Header() {
         ) : user ? (
           <UserMenu user={user} />
         ) : (
-          <LoginButton />
+          <LoginModal />
         )}
       </div>
     </header>
