@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const THRESHOLD = parseInt(process.env.COMPACT_THRESHOLD, 10) || 50;
 const REPEAT_INTERVAL = parseInt(process.env.COMPACT_REPEAT, 10) || 25;

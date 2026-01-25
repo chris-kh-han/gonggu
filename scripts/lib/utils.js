@@ -3,55 +3,69 @@
  * Works on Windows, macOS, and Linux
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { execSync, spawnSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { execSync, spawnSync } from 'child_process';
 
 // Platform detection
-const isWindows = process.platform === 'win32';
-const isMacOS = process.platform === 'darwin';
-const isLinux = process.platform === 'linux';
+export const isWindows = process.platform === 'win32';
+export const isMacOS = process.platform === 'darwin';
+export const isLinux = process.platform === 'linux';
 
 /**
  * Get the user's home directory (cross-platform)
  */
-function getHomeDir() {
+export function getHomeDir() {
   return os.homedir();
 }
 
 /**
  * Get the Claude config directory
  */
-function getClaudeDir() {
+export function getClaudeDir() {
   return path.join(getHomeDir(), '.claude');
 }
 
 /**
  * Get the sessions directory
  */
-function getSessionsDir() {
+export function getSessionsDir() {
   return path.join(getClaudeDir(), 'sessions');
+}
+
+/**
+ * Get the project-local Claude directory (.claude in current working directory)
+ */
+export function getProjectClaudeDir() {
+  return path.join(process.cwd(), '.claude');
+}
+
+/**
+ * Get the project-local sessions directory
+ */
+export function getProjectSessionsDir() {
+  return path.join(getProjectClaudeDir(), 'sessions');
 }
 
 /**
  * Get the learned skills directory
  */
-function getLearnedSkillsDir() {
+export function getLearnedSkillsDir() {
   return path.join(getClaudeDir(), 'skills', 'learned');
 }
 
 /**
  * Get the temp directory (cross-platform)
  */
-function getTempDir() {
+export function getTempDir() {
   return os.tmpdir();
 }
 
 /**
  * Ensure a directory exists (create if not)
  */
-function ensureDir(dirPath) {
+export function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
@@ -61,7 +75,7 @@ function ensureDir(dirPath) {
 /**
  * Get current date in YYYY-MM-DD format
  */
-function getDateString() {
+export function getDateString() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -72,7 +86,7 @@ function getDateString() {
 /**
  * Get current time in HH:MM format
  */
-function getTimeString() {
+export function getTimeString() {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -82,7 +96,7 @@ function getTimeString() {
 /**
  * Get current datetime in YYYY-MM-DD HH:MM:SS format
  */
-function getDateTimeString() {
+export function getDateTimeString() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -99,7 +113,7 @@ function getDateTimeString() {
  * @param {string} pattern - File pattern (e.g., "*.tmp", "*.md")
  * @param {object} options - Options { maxAge: days, recursive: boolean }
  */
-function findFiles(dir, pattern, options = {}) {
+export function findFiles(dir, pattern, options = {}) {
   const { maxAge = null, recursive = false } = options;
   const results = [];
 
@@ -152,7 +166,7 @@ function findFiles(dir, pattern, options = {}) {
 /**
  * Read JSON from stdin (for hook input)
  */
-async function readStdinJson() {
+export async function readStdinJson() {
   return new Promise((resolve, reject) => {
     let data = '';
 
@@ -180,14 +194,14 @@ async function readStdinJson() {
 /**
  * Log to stderr (visible to user in Claude Code)
  */
-function log(message) {
+export function log(message) {
   console.error(message);
 }
 
 /**
  * Output to stdout (returned to Claude)
  */
-function output(data) {
+export function output(data) {
   if (typeof data === 'object') {
     console.log(JSON.stringify(data));
   } else {
@@ -198,7 +212,7 @@ function output(data) {
 /**
  * Read a text file safely
  */
-function readFile(filePath) {
+export function readFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch {
@@ -209,7 +223,7 @@ function readFile(filePath) {
 /**
  * Write a text file
  */
-function writeFile(filePath, content) {
+export function writeFile(filePath, content) {
   ensureDir(path.dirname(filePath));
   fs.writeFileSync(filePath, content, 'utf8');
 }
@@ -217,7 +231,7 @@ function writeFile(filePath, content) {
 /**
  * Append to a text file
  */
-function appendFile(filePath, content) {
+export function appendFile(filePath, content) {
   ensureDir(path.dirname(filePath));
   fs.appendFileSync(filePath, content, 'utf8');
 }
@@ -226,7 +240,7 @@ function appendFile(filePath, content) {
  * Check if a command exists in PATH
  * Uses execFileSync to prevent command injection
  */
-function commandExists(cmd) {
+export function commandExists(cmd) {
   // Validate command name - only allow alphanumeric, dash, underscore, dot
   if (!/^[a-zA-Z0-9_.-]+$/.test(cmd)) {
     return false;
@@ -256,7 +270,7 @@ function commandExists(cmd) {
  * @param {string} cmd - Command to execute (should be trusted/hardcoded)
  * @param {object} options - execSync options
  */
-function runCommand(cmd, options = {}) {
+export function runCommand(cmd, options = {}) {
   try {
     const result = execSync(cmd, {
       encoding: 'utf8',
@@ -272,14 +286,14 @@ function runCommand(cmd, options = {}) {
 /**
  * Check if current directory is a git repository
  */
-function isGitRepo() {
+export function isGitRepo() {
   return runCommand('git rev-parse --git-dir').success;
 }
 
 /**
  * Get git modified files
  */
-function getGitModifiedFiles(patterns = []) {
+export function getGitModifiedFiles(patterns = []) {
   if (!isGitRepo()) return [];
 
   const result = runCommand('git diff --name-only HEAD');
@@ -302,7 +316,7 @@ function getGitModifiedFiles(patterns = []) {
 /**
  * Replace text in a file (cross-platform sed alternative)
  */
-function replaceInFile(filePath, search, replace) {
+export function replaceInFile(filePath, search, replace) {
   const content = readFile(filePath);
   if (content === null) return false;
 
@@ -314,7 +328,7 @@ function replaceInFile(filePath, search, replace) {
 /**
  * Count occurrences of a pattern in a file
  */
-function countInFile(filePath, pattern) {
+export function countInFile(filePath, pattern) {
   const content = readFile(filePath);
   if (content === null) return 0;
 
@@ -326,7 +340,7 @@ function countInFile(filePath, pattern) {
 /**
  * Search for pattern in file and return matching lines with line numbers
  */
-function grepFile(filePath, pattern) {
+export function grepFile(filePath, pattern) {
   const content = readFile(filePath);
   if (content === null) return [];
 
@@ -342,43 +356,3 @@ function grepFile(filePath, pattern) {
 
   return results;
 }
-
-module.exports = {
-  // Platform info
-  isWindows,
-  isMacOS,
-  isLinux,
-
-  // Directories
-  getHomeDir,
-  getClaudeDir,
-  getSessionsDir,
-  getLearnedSkillsDir,
-  getTempDir,
-  ensureDir,
-
-  // Date/Time
-  getDateString,
-  getTimeString,
-  getDateTimeString,
-
-  // File operations
-  findFiles,
-  readFile,
-  writeFile,
-  appendFile,
-  replaceInFile,
-  countInFile,
-  grepFile,
-
-  // Hook I/O
-  readStdinJson,
-  log,
-  output,
-
-  // System
-  commandExists,
-  runCommand,
-  isGitRepo,
-  getGitModifiedFiles,
-};
