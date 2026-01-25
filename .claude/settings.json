@@ -24,7 +24,6 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Bash(curl:*)",
-      "Bash(pnpm dev:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
@@ -54,21 +53,21 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm run dev|pnpm( run)? dev|yarn dev|bun run dev)\"",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"console.error('[Hook] BLOCKED: Dev server must run in tmux for log access');console.error('[Hook] Use: tmux new-session -d -s dev \\\"npm run dev\\\"');console.error('[Hook] Then: tmux attach -t dev');process.exit(1)\""
+            "command": "node ./scripts/hooks/block-dev-server.js"
           }
         ],
         "description": "Block dev servers outside tmux - ensures you can access logs"
       },
       {
-        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm (install|test)|pnpm (install|test)|yarn (install|test)?|bun (install|test)|cargo build|make|docker|pytest|vitest|playwright)\"",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"if(!process.env.TMUX){console.error('[Hook] Consider running in tmux for session persistence');console.error('[Hook] tmux new -s dev  |  tmux attach -t dev')}\""
+            "command": "node ./scripts/hooks/tmux-reminder.js"
           }
         ],
         "description": "Reminder to use tmux for long-running commands"
@@ -84,24 +83,36 @@
         "description": "Reminder before git push to review changes"
       },
       {
-        "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.(md|txt)$\" && !(tool_input.file_path matches \"README\\\\.md|CLAUDE\\\\.md|AGENTS\\\\.md|CONTRIBUTING\\\\.md\")",
+        "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.(md|txt)$\"",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs=require('fs');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path||'';if(/\\.(md|txt)$/.test(p)&&!/(README|CLAUDE|AGENTS|CONTRIBUTING)\\.md$/.test(p)){console.error('[Hook] BLOCKED: Unnecessary documentation file creation');console.error('[Hook] File: '+p);console.error('[Hook] Use README.md for documentation instead');process.exit(1)}console.log(d)})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path||'';console.error('[Hook] Creating: '+p);console.error('[Hook] Did you ask user permission with AskUserQuestion first?');process.exit(0)})\""
           }
         ],
-        "description": "Block creation of random .md files - keeps docs consolidated"
+        "description": "Remind to ask user permission before creating .md/.txt files"
       },
       {
         "matcher": "tool == \"Edit\" || tool == \"Write\"",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/suggest-compact.js\""
+            "command": "node \"./scripts/hooks/suggest-compact.js\""
           }
         ],
         "description": "Suggest manual compaction at logical intervals"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./scripts/hooks/pre-compact.js"
+          }
+        ],
+        "description": "Log compaction events before context is summarized"
       }
     ]
   }
