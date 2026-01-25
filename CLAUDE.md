@@ -92,3 +92,8 @@ gonggu_posts (공구 게시물)
 - Path alias: `@/*` maps to project root
 - Server components by default, 'use client' only when needed
 - Korean comments OK
+
+## Forbidden Actions
+
+- **NEVER** create, modify, or delete files in `~/.claude/` without explicit user permission
+- Always use `AskUserQuestion` before touching any file in `~/.claude/`
