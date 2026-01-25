@@ -46,4 +46,4 @@ next-env.d.ts
 
 # claude generated
 .claude/logs/
-.claude/sessions/
+.claude/sessions/logs/

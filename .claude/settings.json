@@ -53,6 +53,16 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S') PreToolUse\" >> ./logs/hooks.log"
+          }
+        ],
+        "description": "Log all PreToolUse events for debugging"
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -105,6 +115,16 @@
     ],
     "PreCompact": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S') PreCompact\" >> ./logs/hooks.log"
+          }
+        ],
+        "description": "Log all PreCompact events for debugging"
+      },
+      {
         "matcher": "manual",
         "hooks": [
           {
@@ -127,14 +147,24 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "tool == \"Bash\" && tool_input.command matches \"gh pr create\"",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);const o=r.tool_output||'';const m=o.match(/https:\\/\\/github\\.com\\/[^\\s]+\\/pull\\/\\d+/);if(m){console.log(JSON.stringify({systemMessage:'[Hook] PR created: '+m[0]+'\\n[Hook] Review: gh pr view '+m[0]+' --web'}))}})\""
+            "command": "echo \"$(date '+%H:%M:%S') PostToolUse\" >> ./logs/hooks.log"
           }
         ],
-        "description": "Log PR URL and review command after creation"
+        "description": "Log all PostToolUse events for debugging"
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);const o=r.tool_output||'';const m=o.match(/https:\\/\\/github\\.com\\/[^\\s]+\\/pull\\/\\d+/);if(m){console.error('[Hook] PR created: '+m[0]);console.error('[Hook] Review: gh pr view '+m[0]+' --web')}})\""
+          }
+        ],
+        "description": "Log PR URL after creation"
       },
       {
         "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
@@ -151,7 +181,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const{execSync}=require('child_process');try{execSync('pnpm tsc --noEmit 2>&1',{encoding:'utf8'})}catch(e){const msg=e.stdout||e.message;console.log(JSON.stringify({systemMessage:'[Hook] TypeScript errors:\\n'+msg.slice(0,500)}))}}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const{execSync}=require('child_process');try{execSync('pnpm tsc --noEmit 2>&1',{encoding:'utf8'})}catch(e){console.error('[Hook] TypeScript errors:');console.error((e.stdout||e.message).slice(0,500))}}})\""
           }
         ],
         "description": "Run TypeScript check after editing .ts/.tsx files"
@@ -161,7 +191,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const fs=require('fs');try{const c=fs.readFileSync(p,'utf8');if(c.includes('console.log')){console.log(JSON.stringify({systemMessage:'[Hook] ⚠️ console.log detected in '+p+'\\nRemember to remove before commit'}))}}catch(e){}}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const fs=require('fs');try{const c=fs.readFileSync(p,'utf8');if(c.includes('console.log')){console.error('[Hook] ⚠️ console.log detected in '+p);console.error('[Hook] Remember to remove before commit')}}catch(e){}}})\""
           }
         ],
         "description": "Warn about console.log in edited JS/TS files"
