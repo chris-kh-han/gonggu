@@ -51,7 +51,39 @@
   },
   "enabledPlugins": {},
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const fs=require('fs');const i=JSON.parse(d);const sid=(i.session_id||'unknown').slice(0,8);const ts=new Date().toTimeString().slice(0,8);const dt=new Date().toLocaleDateString();const hdr='\\n════════════════════════════════════════\\n'+dt+' '+ts+' [SessionStart] '+sid+'\\n════════════════════════════════════════\\n';fs.appendFileSync('./.claude/logs/hooks.log',hdr);fs.appendFileSync('./.claude/logs/sessions/'+sid+'.log',hdr);console.log(JSON.stringify({systemMessage:'[Hook] Session started: '+sid}))})\""
+          }
+        ],
+        "description": "Add separator line at session start"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const fs=require('fs');const i=JSON.parse(d);const sid=(i.session_id||'unknown').slice(0,8);const f='./.claude/logs/userprompt-debug.json';let arr=[];try{arr=JSON.parse(fs.readFileSync(f,'utf8'))}catch(e){}arr.push({...i,logged_at:new Date().toISOString()});if(arr.length>50)arr=arr.slice(-50);fs.writeFileSync(f,JSON.stringify(arr,null,2));const p=(i.prompt||'').slice(0,50).replace(/\\n/g,' ');const ts=new Date().toTimeString().slice(0,8);const line='\\n────────────────────────────────────────\\n'+ts+' [UserPrompt] '+p+(i.prompt?.length>50?'...':'')+'\\n';fs.appendFileSync('./.claude/logs/hooks.log',line);fs.appendFileSync('./.claude/logs/sessions/'+sid+'.log',line);console.log(JSON.stringify({systemMessage:'[Hook] Prompt: '+p+(i.prompt?.length>50?'...':'')}))})\""
+          }
+        ],
+        "description": "Add separator line for each user message"
+      }
+    ],
     "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const fs=require('fs');const i=JSON.parse(d);const sid=(i.session_id||'unknown').slice(0,8);const t=i.tool_name||'unknown';const ts=new Date().toTimeString().slice(0,8);const inp=i.tool_input||{};let desc='';if(t==='Bash'){const cmd=(inp.command||'').slice(0,50);desc=cmd+(inp.command?.length>50?'...':'')}else if(t==='Read'||t==='Write'||t==='Edit'){desc=require('path').basename(inp.file_path||'')}else if(t==='Glob'){desc=inp.pattern||''}else if(t==='Grep'){desc=inp.pattern||''}const line=ts+' [PreToolUse:'+t+'] '+(desc||'exec')+' \\n';fs.appendFileSync('./.claude/logs/hooks.log',line);fs.appendFileSync('./.claude/logs/sessions/'+sid+'.log',line);console.log(JSON.stringify({systemMessage:'[Hook] '+t+': '+(desc||'exec')}))})\""
+          }
+        ],
+        "description": "Log all PreToolUse events with tool name and context"
+      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -73,27 +105,27 @@
         "description": "Reminder to use tmux for long-running commands"
       },
       {
-        "matcher": "tool == \"Bash\" && tool_input.command matches \"git push\"",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"console.error('[Hook] Review changes before push...');console.error('[Hook] Continuing with push (remove this hook to add interactive review)')\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const cmd=i.tool_input?.command||'';if(cmd.includes('git push')){const fs=require('fs');const ts=new Date().toTimeString().slice(0,8);fs.appendFileSync('./.claude/logs/hooks.log',ts+' [PreToolUse:Bash] git-push - 푸시 전 변경사항 리뷰 필요\\n');console.log(JSON.stringify({systemMessage:'[Hook] git push - 푸시 전 변경사항 리뷰 필요'}))}})\""
           }
         ],
         "description": "Reminder before git push to review changes"
       },
       {
-        "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.(md|txt)$\"",
+        "matcher": "Write",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path||'';console.error('[Hook] Creating: '+p);console.error('[Hook] Did you ask user permission with AskUserQuestion first?');process.exit(0)})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path||'';if(/\\.(md|txt)$/.test(p)){const fn=require('path').basename(p);const ts=new Date().toTimeString().slice(0,8);require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PreToolUse:Write] doc-create - '+fn+' 권한 확인 필요\\n');console.log(JSON.stringify({systemMessage:'[Hook] Creating '+fn+' - Did you ask user permission?'}))}})\""
           }
         ],
         "description": "Remind to ask user permission before creating .md/.txt files"
       },
       {
-        "matcher": "tool == \"Edit\" || tool == \"Write\"",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
@@ -104,6 +136,15 @@
       }
     ],
     "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const typ=i.type||'unknown';const ts=new Date().toTimeString().slice(0,8);require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PreCompact:'+typ+'] 컴팩션 시작\\n');console.log('[Hook] Compaction starting ('+typ+')')})\""
+          }
+        ],
+        "description": "Log all PreCompact events with type (manual/auto)"
+      },
       {
         "matcher": "manual",
         "hooks": [
@@ -127,41 +168,51 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "tool == \"Bash\" && tool_input.command matches \"gh pr create\"",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);const o=r.tool_output||'';const m=o.match(/https:\\/\\/github\\.com\\/[^\\s]+\\/pull\\/\\d+/);if(m){console.log(JSON.stringify({systemMessage:'[Hook] PR created: '+m[0]+'\\n[Hook] Review: gh pr view '+m[0]+' --web'}))}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const fs=require('fs');const i=JSON.parse(d);const sid=(i.session_id||'unknown').slice(0,8);const t=i.tool_name||'unknown';const ts=new Date().toTimeString().slice(0,8);const inp=i.tool_input||{};let desc='';if(t==='Bash'){const cmd=(inp.command||'').slice(0,50);desc=cmd+(inp.command?.length>50?'...':'')}else if(t==='Read'||t==='Write'||t==='Edit'){desc=require('path').basename(inp.file_path||'')}else if(t==='Glob'){desc=inp.pattern||''}else if(t==='Grep'){desc=inp.pattern||''}const line=ts+' [PostToolUse:'+t+'] '+(desc||'done')+' \\n';fs.appendFileSync('./.claude/logs/hooks.log',line);fs.appendFileSync('./.claude/logs/sessions/'+sid+'.log',line);console.log(JSON.stringify({systemMessage:'[Hook] ✓ '+t+': '+(desc||'done')}))})\""
           }
         ],
-        "description": "Log PR URL and review command after creation"
+        "description": "Log all PostToolUse events with tool name and context"
       },
       {
-        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const{execSync}=require('child_process');try{execSync('pnpm prettier --write '+p,{stdio:'inherit'})}catch(e){}}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);const o=r.tool_result||r.tool_output||'';const m=o.match(/https:\\/\\/github\\.com\\/[^\\s]+\\/pull\\/\\d+/);if(m){const ts=new Date().toTimeString().slice(0,8);require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Bash] pr-create - '+m[0]+'\\n');console.log(JSON.stringify({systemMessage:'[Hook] PR created: '+m[0]}))}})\""
+          }
+        ],
+        "description": "Log PR URL after creation"
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p&&/\\.(ts|tsx|js|jsx)$/.test(p)){const{execSync}=require('child_process');const fn=require('path').basename(p);const ts=new Date().toTimeString().slice(0,8);try{execSync('pnpm prettier --write '+p,{stdio:'pipe'});require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Edit] prettier - '+fn+' 포맷 완료\\n');console.log(JSON.stringify({systemMessage:'[Hook] Prettier: '+fn+' formatted'}))}catch(e){require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Edit] prettier - '+fn+' 포맷 실패\\n');console.log(JSON.stringify({systemMessage:'[Hook] Prettier failed: '+fn}))}}})\""
           }
         ],
         "description": "Auto-format JS/TS files with Prettier after edit"
       },
       {
-        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx)$\"",
+        "matcher": "Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const{execSync}=require('child_process');try{execSync('pnpm tsc --noEmit 2>&1',{encoding:'utf8'})}catch(e){const msg=e.stdout||e.message;console.log(JSON.stringify({systemMessage:'[Hook] TypeScript errors:\\n'+msg.slice(0,500)}))}}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p&&/\\.(ts|tsx)$/.test(p)){const{execSync}=require('child_process');const fn=require('path').basename(p);const ts=new Date().toTimeString().slice(0,8);try{execSync('pnpm tsc --noEmit 2>&1',{encoding:'utf8'});require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Edit] tsc - 에러 없음\\n')}catch(e){const msg=(e.stdout||e.message).slice(0,200).replace(/\\n/g,' ');require('fs').appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Edit] tsc - '+msg+'\\n');console.log(JSON.stringify({systemMessage:'[Hook] TypeScript errors in '+fn}))}}})\""
           }
         ],
         "description": "Run TypeScript check after editing .ts/.tsx files"
       },
       {
-        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
+        "matcher": "Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p){const fs=require('fs');try{const c=fs.readFileSync(p,'utf8');if(c.includes('console.log')){console.log(JSON.stringify({systemMessage:'[Hook] ⚠️ console.log detected in '+p+'\\nRemember to remove before commit'}))}}catch(e){}}})\""
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p&&/\\.(ts|tsx|js|jsx)$/.test(p)){const fs=require('fs');const fn=require('path').basename(p);const ts=new Date().toTimeString().slice(0,8);try{const c=fs.readFileSync(p,'utf8');if(c.includes('console.log')){fs.appendFileSync('./.claude/logs/hooks.log',ts+' [PostToolUse:Edit] console-warn - ⚠️ '+fn+'에 console.log 발견\\n');console.log(JSON.stringify({systemMessage:'[Hook] ⚠️ console.log detected in '+fn+' - Remember to remove before commit'}))}}catch(e){}}})\""
           }
         ],
         "description": "Warn about console.log in edited JS/TS files"
