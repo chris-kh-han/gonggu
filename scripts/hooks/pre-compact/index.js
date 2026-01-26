@@ -5,7 +5,7 @@ import {
   ensureDir,
   appendFile,
   log,
-} from '../lib/utils.js';
+} from '../../lib/utils.js';
 
 async function main() {
   const sessionsDir = getProjectSessionsDir();
