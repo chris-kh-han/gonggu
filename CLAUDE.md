@@ -92,6 +92,7 @@ gonggu_posts (공구 게시물)
 - Path alias: `@/*` maps to project root
 - Server components by default, 'use client' only when needed
 - Korean comments OK
+- Rules in `.claude/rules/` must be written in English
 
 ## Forbidden Actions
 

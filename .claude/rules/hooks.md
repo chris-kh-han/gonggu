@@ -1,26 +1,44 @@
 # Hooks System
 
-## Hook Types
+## Output Methods
 
-- **PreToolUse**: Before tool execution (validation, parameter modification)
-- **PostToolUse**: After tool execution (auto-format, checks)
-- **Stop**: When session ends (final verification)
+### Terminal Output (systemMessage)
+```javascript
+console.log(JSON.stringify({ systemMessage: 'message' }));
+```
 
-## Current Hooks (in ~/.claude/settings.json)
+### File Logging
+- **Path**: `./.claude/logs/hooks.log`
+- **Format**: `HH:MM:SS [HookType:Tool] description`
 
-### PreToolUse
-- **tmux reminder**: Suggests tmux for long-running commands (npm, pnpm, yarn, cargo, etc.)
-- **git push review**: Opens Zed for review before push
-- **doc blocker**: Warns about creation of .md/.txt files (reminder to ask user first)
+```
+01:05:40 [PreToolUse:Edit] utils.ts
+01:05:40 [PostToolUse:Edit] prettier - utils.ts formatted
+01:05:40 [PostToolUse:Edit] tsc - no errors
+01:05:40 [PostToolUse:Edit] console-warn - console.log found in utils.ts
+```
 
-### PostToolUse
-- **PR creation**: Logs PR URL and GitHub Actions status
-- **Prettier**: Auto-formats JS/TS files after edit
-- **TypeScript check**: Runs tsc after editing .ts/.tsx files
-- **console.log warning**: Warns about console.log in edited files
+## Matcher Syntax
 
-### Stop
-- **console.log audit**: Checks all modified files for console.log before session ends
+| Pattern | Description |
+|---------|-------------|
+| `"Edit"` | Single tool |
+| `"Edit\|Write"` | Multiple tools (OR) |
+| `"*"` | All tools |
+| `"mcp__.*"` | Regex pattern |
+| `"manual"` / `"auto"` | PreCompact only |
+
+**Note**: Expressions like `tool == "Edit" && ...` not supported. Check conditions inside script.
+
+## Hook Input (stdin JSON)
+
+```json
+{
+  "tool_name": "Edit",
+  "tool_input": { "file_path": "/path/to/file.ts" },
+  "tool_result": "..."  // PostToolUse only
+}
+```
 
 ## Document File Creation Policy
 
