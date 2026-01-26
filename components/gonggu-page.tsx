@@ -1,75 +1,32 @@
-'use client';
+'use client'
 
-import { useState, useMemo } from 'react';
-import { Header } from './header';
-import { CategoryFilter } from './category-filter';
-import { GongguCard, GongguCardSkeleton } from './gonggu-card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CATEGORY_GROUPS, isInCategoryGroup, type CategoryGroup } from '@/lib/categories';
-import type { GongguPost, Seller } from '@/types/database.types';
-import { Flame, Clock, Timer } from 'lucide-react';
+import { Header } from './header'
+import { CategoryFilter } from './category-filter'
+import { GongguCard, GongguCardSkeleton } from './gonggu-card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useGongguFilters } from '@/hooks'
+import type { GongguPost, Seller } from '@/types/database.types'
+import { Flame, Clock, Timer } from 'lucide-react'
 
 type GongguWithSeller = GongguPost & {
-  sellers: Pick<Seller, 'instagram_username' | 'category'>;
-  trending_score?: number;
-};
-
-type TabType = 'latest' | 'trending' | 'deadline';
+  sellers: Pick<Seller, 'instagram_username' | 'category'>
+  trending_score?: number
+}
 
 interface GongguPageProps {
-  latestPosts: GongguWithSeller[];
-  trendingPosts: GongguWithSeller[];
+  latestPosts: GongguWithSeller[]
+  trendingPosts: GongguWithSeller[]
 }
 
 export function GongguPage({ latestPosts, trendingPosts }: GongguPageProps) {
-  const [category, setCategory] = useState('all');
-  const [activeTab, setActiveTab] = useState<TabType>('latest');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleCategoryChange = (newCategory: string) => {
-    setIsLoading(true);
-    setCategory(newCategory);
-    setTimeout(() => setIsLoading(false), 300);
-  };
-
-  const handleTabChange = (tab: string) => {
-    setIsLoading(true);
-    setActiveTab(tab as TabType);
-    setTimeout(() => setIsLoading(false), 300);
-  };
-
-  // 현재 탭에 따른 데이터 소스 선택
-  const basePosts = activeTab === 'trending' ? trendingPosts : latestPosts;
-
-  const filteredPosts = useMemo(() => {
-    let result = basePosts;
-
-    // 카테고리 필터
-    if (category === '기타') {
-      result = result.filter(
-        (post) =>
-          !CATEGORY_GROUPS.some((group) =>
-            isInCategoryGroup(post.sellers.category, group)
-          )
-      );
-    } else if (category !== 'all') {
-      result = result.filter((post) =>
-        isInCategoryGroup(post.sellers.category, category as CategoryGroup)
-      );
-    }
-
-    // 탭별 정렬
-    if (activeTab === 'deadline') {
-      result = [...result].sort((a, b) => {
-        if (!a.deadline) return 1;
-        if (!b.deadline) return -1;
-        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-      });
-    }
-    // trending과 latest는 이미 서버에서 정렬됨
-
-    return result;
-  }, [basePosts, category, activeTab]);
+  const {
+    category,
+    activeTab,
+    isLoading,
+    filteredPosts,
+    handleCategoryChange,
+    handleTabChange,
+  } = useGongguFilters({ latestPosts, trendingPosts })
 
   return (
     <div>
@@ -138,5 +95,5 @@ export function GongguPage({ latestPosts, trendingPosts }: GongguPageProps) {
         )}
       </div>
     </div>
-  );
+  )
 }

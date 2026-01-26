@@ -96,3 +96,11 @@ Before marking work complete:
 - [ ] No hardcoded values
 - [ ] No mutation (immutable patterns used)
 - [ ] Latest syntax verified via Context7 MCP
+
+
+## Build Troubleshooting
+
+If build fails:
+- Analyze error messages carefully
+- Fix one error at a time
+- Run build after each fix to verify

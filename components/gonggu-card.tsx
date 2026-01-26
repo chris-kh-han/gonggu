@@ -58,8 +58,8 @@ function formatPrice(price: number | null): string {
 
 export function GongguCardSkeleton() {
   return (
-    <Card className='p-4 rounded-xl shadow-sm'>
-      <CardContent className='p-0 space-y-3'>
+    <Card className='rounded-xl p-4 shadow-sm'>
+      <CardContent className='space-y-3 p-0'>
         <div className='flex items-start justify-between gap-2'>
           <Skeleton className='h-5 flex-1' />
           <Skeleton className='h-5 w-14 shrink-0' />
@@ -94,17 +94,17 @@ export function GongguCard({ post, rank }: GongguCardProps) {
     >
       <Card
         className={cn(
-          'p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-l-4',
+          'cursor-pointer overflow-hidden rounded-xl border-l-4 p-4 shadow-sm transition-shadow hover:shadow-md',
           categoryColor.borderAccent,
           categoryColor.bgLight,
         )}
       >
-        <CardContent className='p-0 space-y-3'>
+        <CardContent className='space-y-3 p-0'>
           <div className='flex items-start justify-between gap-2'>
-            <div className='flex items-start gap-2 flex-1 min-w-0'>
+            <div className='flex min-w-0 flex-1 items-start gap-2'>
               {rank && (
                 <span
-                  className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     rank <= 3
                       ? 'bg-linear-to-br from-orange-400 to-red-500 text-white'
                       : 'bg-muted text-muted-foreground'
@@ -113,7 +113,7 @@ export function GongguCard({ post, rank }: GongguCardProps) {
                   {rank}
                 </span>
               )}
-              <h3 className='font-semibold text-foreground line-clamp-2'>
+              <h3 className='text-foreground line-clamp-2 font-semibold'>
                 {post.title}
               </h3>
             </div>
@@ -122,17 +122,25 @@ export function GongguCard({ post, rank }: GongguCardProps) {
                 variant='outline'
                 className={cn(
                   'shrink-0',
-                  deadlineInfo.status === 'closed' && 'bg-black text-white border-black',
-                  deadlineInfo.status === 'urgent' && 'bg-white text-red-600 border-gray-200',
-                  deadlineInfo.status === 'normal' && 'bg-white text-gray-900 border-gray-200'
+                  deadlineInfo.status === 'closed' &&
+                    'border-black bg-black text-white',
+                  deadlineInfo.status === 'urgent' &&
+                    'border-gray-200 bg-white text-red-600',
+                  deadlineInfo.status === 'normal' &&
+                    'border-gray-200 bg-white text-gray-900',
                 )}
               >
-                {deadlineInfo.status === 'closed' && <XCircle className='h-3 w-3' />}
+                {deadlineInfo.status === 'closed' && (
+                  <XCircle className='h-3 w-3' />
+                )}
                 {deadlineInfo.text}
               </Badge>
             )}
             {post.status === 'closed' && (
-              <Badge variant='outline' className='shrink-0 bg-black text-white border-black'>
+              <Badge
+                variant='outline'
+                className='shrink-0 border-black bg-black text-white'
+              >
                 <XCircle className='h-3 w-3' />
                 마감
               </Badge>
@@ -154,7 +162,7 @@ export function GongguCard({ post, rank }: GongguCardProps) {
             <Badge
               variant='outline'
               className={cn(
-                'text-xs bg-white',
+                'bg-white text-xs',
                 getCategoryColor(post.sellers.category).text,
                 getCategoryColor(post.sellers.category).border,
               )}

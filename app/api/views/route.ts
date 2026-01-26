@@ -1,57 +1,68 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
-import type { NewPostView } from "@/types/database.types";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { viewRepository, type ApiResponse } from '@/lib/repositories';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
-// 중복 조회 방지 시간 (분)
-const DUPLICATE_VIEW_MINUTES = 30;
+// Input validation schema
+const viewSchema = z.object({
+  postId: z.string().uuid('올바른 게시물 ID가 아닙니다'),
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const { postId } = await request.json();
+export async function POST(
+  request: NextRequest,
+): Promise<NextResponse<ApiResponse<null>>> {
+  // Rate limiting
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
 
-    if (!postId) {
-      return NextResponse.json({ error: "postId is required" }, { status: 400 });
-    }
+  const rateLimitResult = checkRateLimit(
+    `views:${ip}`,
+    RATE_LIMITS.views.limit,
+    RATE_LIMITS.views.windowMs,
+  );
 
-    const supabase = await createClient();
-
-    // IP 추출 (Next.js에서 제공하는 헤더 사용)
-    const forwarded = request.headers.get("x-forwarded-for");
-    const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
-
-    // 최근 N분 내 같은 IP의 조회가 있는지 확인
-    const cutoffTime = new Date(
-      Date.now() - DUPLICATE_VIEW_MINUTES * 60 * 1000
-    ).toISOString();
-
-    const { data: recentView } = await supabase
-      .from("post_views")
-      .select("id")
-      .eq("post_id", postId)
-      .eq("viewer_ip", ip)
-      .gte("viewed_at", cutoffTime)
-      .limit(1)
-      .single();
-
-    // 중복 조회가 아닌 경우에만 카운트 증가
-    if (!recentView) {
-      // 조회 로그 기록
-      const viewData: NewPostView = {
-        post_id: postId,
-        viewer_ip: ip,
-      };
-      await supabase.from("post_views").insert(viewData as never);
-
-      // view_count 증가
-      await (supabase.rpc as Function)("increment_view_count", { post_id: postId });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("View tracking error:", error);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
-      { error: "Failed to track view" },
-      { status: 500 }
+      { success: false, error: '요청이 너무 많습니다' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(
+            Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+          ),
+        },
+      },
+    );
+  }
+
+  try {
+    const body = await request.json();
+
+    // Validate input
+    const parseResult = viewSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: '잘못된 요청입니다' },
+        { status: 400 },
+      );
+    }
+
+    const { postId } = parseResult.data;
+
+    // Repository를 통한 조회 추적
+    const isNewView = await viewRepository.trackView(postId, ip);
+
+    return NextResponse.json({
+      success: true,
+      data: null,
+      meta: { isNewView },
+    } as ApiResponse<null> & { meta: { isNewView: boolean } });
+  } catch {
+    // 내부 에러 메시지 노출하지 않음 (보안)
+    return NextResponse.json(
+      { success: false, error: '요청을 처리할 수 없습니다' },
+      { status: 500 },
     );
   }
 }
