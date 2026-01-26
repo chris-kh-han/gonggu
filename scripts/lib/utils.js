@@ -43,9 +43,25 @@ export function getProjectClaudeDir() {
 
 /**
  * Get the project-local sessions directory
+ * @deprecated Use getProjectSnapshotsDir() instead
  */
 export function getProjectSessionsDir() {
   return path.join(getProjectClaudeDir(), 'sessions');
+}
+
+/**
+ * Get the project-local snapshots directory (session state files)
+ */
+export function getProjectSnapshotsDir() {
+  return path.join(getProjectClaudeDir(), 'snapshots');
+}
+
+/**
+ * Get short session ID from environment (first 8 chars)
+ */
+export function getSessionIdShort() {
+  const sessionId = process.env.CLAUDE_SESSION_ID || 'unknown';
+  return sessionId.slice(0, 8);
 }
 
 /**
@@ -84,6 +100,17 @@ export function getDateString() {
 }
 
 /**
+ * Get current date in YYYYMMDD format (for filenames)
+ */
+export function getCompactDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+/**
  * Get current time in HH:MM format
  */
 export function getTimeString() {
@@ -91,6 +118,16 @@ export function getTimeString() {
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
+}
+
+/**
+ * Get current time in HHMM format (for filenames)
+ */
+export function getCompactTimeString() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${hours}${minutes}`;
 }
 
 /**
