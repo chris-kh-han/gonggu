@@ -50,6 +50,7 @@ process.stdin.on('end', async () => {
     // Gather session info
     const modifiedFiles = getModifiedFiles();
     const recentActivity = getRecentActivity(sessionId);
+    const sessionPrompts = getSessionPrompts(sessionId);
 
     // If session file exists, update it
     if (fs.existsSync(sessionFile)) {
@@ -89,6 +90,11 @@ process.stdin.on('end', async () => {
           ? recentActivity.map((a) => `- ${a}`).join('\n')
           : '- (no activity logged)';
 
+      const promptsSection =
+        sessionPrompts.length > 0
+          ? sessionPrompts.map((p, i) => `${i + 1}. ${p}`).join('\n')
+          : '- (no prompts recorded)';
+
       const template = `# Session: ${today} (${sessionId})
 **Date:** ${today}
 **Session ID:** ${sessionId}
@@ -100,6 +106,9 @@ process.stdin.on('end', async () => {
 ## Summary
 
 [Add session summary here]
+
+### User Prompts
+${promptsSection}
 
 ### Modified Files
 ${filesSection}
@@ -149,6 +158,34 @@ function getModifiedFiles() {
     );
 
     return output.split('\n').filter((f) => f.trim());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get user prompts from userprompt-debug.json for this session
+ */
+function getSessionPrompts(sessionId) {
+  try {
+    const promptFile = path.join(
+      getProjectClaudeDir(),
+      'logs',
+      'userprompt-debug.json',
+    );
+    if (!fs.existsSync(promptFile)) return [];
+
+    const content = fs.readFileSync(promptFile, 'utf8');
+    const prompts = JSON.parse(content);
+
+    // Filter prompts for this session (match by first 8 chars of session_id)
+    return prompts
+      .filter((p) => p.session_id && p.session_id.startsWith(sessionId))
+      .map((p) => {
+        const text = (p.prompt || '').replace(/\n/g, ' ').trim();
+        return text.length > 80 ? text.slice(0, 80) + '...' : text;
+      })
+      .reverse(); // oldest first
   } catch {
     return [];
   }

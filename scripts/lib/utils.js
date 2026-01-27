@@ -57,6 +57,13 @@ export function getProjectSnapshotsDir() {
 }
 
 /**
+ * Get the project-local logs directory
+ */
+export function getProjectLogsDir() {
+  return path.join(getProjectClaudeDir(), 'logs');
+}
+
+/**
  * Get short session ID from environment (first 8 chars)
  */
 export function getSessionIdShort() {
