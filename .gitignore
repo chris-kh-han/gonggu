@@ -44,6 +44,5 @@ next-env.d.ts
 .mcp.json
 .vscode/
 
-# claude generated
-.claude/logs/
-.claude/snapshots/
+# claude
+.claude/
